@@ -120,3 +120,36 @@ order by ``total_purchases`` by descending order (from the most purchased to the
 Selecting the first row with ``top(1)`` which is the most purchased item.
 
 <hr>
+
+### Question #5
+Which item was the most popular for each customer?
+
+### Solution:
+```sql
+with most_popular as (
+  select customer_id, 
+  product_id, 
+  count(product_id) as order_count, 
+  dense_rank() over(partition by customer_id order by count(customer_id) desc) as rank
+  from dannys_diner.sales
+  group by customer_id, product_id
+)
+
+select customer_id, order_count, product_name
+from most_popular as mp
+join dannys_diner.menu as m
+	on mp.product_id = m.product_id
+where rank=1
+order by customer_id
+```
+
+|customer_id |	order_count |	product_name |
+|-----------|---------------|---------------|
+|A 	|3 	|ramen|
+|B 	|2 	|sushi|
+|B 	|2 	|curry|
+|B 	|2 	|ramen|
+|C 	|3 	|ramen|
+
+Using Window function ``most_popular`` - counting ``product_id``s and name it as ``order_count`` and using ``dense_rank`` to rank ``order_count`` by descending order for each customer.<br>
+Filtering results with ``rank=1`` which is the most popular item for each customer.
