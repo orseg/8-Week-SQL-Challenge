@@ -93,4 +93,4 @@ Both solutions give the same result.
 | C | ramen |
 
 Used Window function with row_number() partition by customer_id to create new column named row_number based on order_date. <br>
-Because I've asked to return the first item that was pruchased from the menu by each customer, only results with **``row_number=1``** will be returned (group by row_number=1)
+Because I've asked to return the first item that was pruchased from the menu by each customer, only results with **``row_number=1``** will be returned.
