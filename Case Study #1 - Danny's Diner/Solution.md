@@ -71,7 +71,7 @@ group by customer_id, product_name
 ### Solution 2 (Using join):
 ```sql
 with first_item_purchased as (
-  select *, row_number() over(partition by customer_id order by order_date) as rank
+  select *, row_number() over(partition by customer_id order by order_date) as row_number
   from dannys_diner.sales
 )
 
@@ -79,7 +79,7 @@ select customer_id,product_name
 from first_item_purchased as fip
 join dannys_diner.menu as m
 	on fip.product_id = m.product_id
-where rank=1
+where row_number=1
 group by customer_id, product_name
 order by customer_id
 ```
@@ -92,5 +92,5 @@ Both solutions give the same result.
 | B | curry |
 | C | ramen |
 
-Used Window function with row_number() to create new column named rank based on order_date. <br>
-Because I've asked to return the first item that was pruchased from the menu by each customer, only rows where **``rank=1``** will be returned (group by rank=1)
+Used Window function with row_number() partition by customer_id to create new column named row_number based on order_date. <br>
+Because I've asked to return the first item that was pruchased from the menu by each customer, only results with **``row_number=1``** will be returned (group by row_number=1)
