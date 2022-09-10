@@ -55,7 +55,7 @@ What was the first item from the menu purchased by each customer?
 ### Solution 1 (The hard way):
 ```sql
 with first_item_purchased as (
-  select *, row_number() over(partition by customer_id order by order_date) as rank
+  select *, row_number() over(partition by customer_id order by order_date) as row_number
   from dannys_diner.sales
 )
 
@@ -64,7 +64,7 @@ select customer_id,
  from dannys_diner.menu 
  where first_item_purchased.product_id = dannys_diner.menu.product_id) as product_name
 from first_item_purchased
-where rank=1
+where row_number=1
 group by customer_id, product_name
 ```
 
