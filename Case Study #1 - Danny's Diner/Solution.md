@@ -95,3 +95,28 @@ Both solutions give the same result.
 Used Window function with row_number() partition by ``customer_id`` to create new column named **``row_number``** based on ``order_date``. <br>
 **``product_name``** is taken from the ``menu`` table where the **``product_id``** from the ``sales`` table matching the **``product_id``** from the ``menu`` table.<br>
 Because I've asked to return the first item that was pruchased from the menu by each customer, only results with **``row_number=1``** will be returned.
+
+<hr> 
+
+### Question #4
+What is the most purchased item on the menu and how many times was it purchased by all customers?
+
+### Solution:
+```sql
+select top(1) product_name, count(s.product_id) as total_purchases
+from dannys_diner.sales as s
+join dannys_diner.menu as m
+	on s.product_id = m.product_id
+group by s.product_id, product_name
+order by total_purchases desc
+```
+
+| product_name | total_purchases |
+| ----------- | ------------------ |
+| ramen | 8 |
+
+Counting the number of ``product_id`` with ``count()``.<br>
+order by ``total_purchases`` by descending order (from the most purchased to the least purchased).<br>
+Selecting the first row with ``top(1)`` which is the most purchased item.
+
+<hr>
