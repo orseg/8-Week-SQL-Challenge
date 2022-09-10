@@ -46,3 +46,51 @@ group by customer_id
 
 Used ```distincted``` in count function to count unique values. <br>
 Otherwise, 2 records with the same day will be counted as 2 days which is not what we want.
+
+<hr>
+
+### Question #3
+What was the first item from the menu purchased by each customer?
+
+### Solution 1 (The hard way):
+```sql
+with first_item_purchased as (
+  select *, row_number() over(partition by customer_id order by order_date) as rank
+  from dannys_diner.sales
+)
+
+select customer_id,
+(select product_name 
+ from dannys_diner.menu 
+ where first_item_purchased.product_id = dannys_diner.menu.product_id) as product_name
+from first_item_purchased
+where rank=1
+group by customer_id, product_name
+```
+
+### Solution 2 (Using join):
+```sql
+with first_item_purchased as (
+  select *, row_number() over(partition by customer_id order by order_date) as rank
+  from dannys_diner.sales
+)
+
+select customer_id,product_name
+from first_item_purchased as fip
+join dannys_diner.menu as m
+	on fip.product_id = m.product_id
+where rank=1
+group by customer_id, product_name
+order by customer_id
+```
+
+Both solutions give the same result.
+
+| customer_id | product_name |
+| ----------- | ------------------ |
+| A | sushi |
+| B | curry |
+| C | ramen |
+
+Used Window function with row_number() to create new column named rank based on order_date. <br>
+Because I've asked to return the first item that was pruchased from the menu by each customer, only rows where **``rank=1``** will be returned (group by rank=1)
