@@ -182,5 +182,8 @@ where first_item=1
 |A 	|curry 	|2021-01-07T00:00:00.000Z|
 |B 	|sushi 	|2021-01-11T00:00:00.000Z|
 
-Using Window function ``first_order_as_member`` - partitioning ``customer_id`` by ascending ``order_date`` and filtering ``order_date`` to be on or after ``join_date``.<br>
-Filtering results with ``first_item=1`` to return the first item purchased as a member.
+- Using Window function ``first_order_as_member`` - 
+	- partitioning ``customer_id`` by ascending ``order_date``.<br>
+	- join members and sales tables on ``customer_id`` and then join the results with menu table on ``product_id``<br>
+	- filtering ``order_date`` to be on or after ``join_date``.
+- Filtering results with ``first_item=1`` to return the first item purchased as a member.
