@@ -153,3 +153,34 @@ order by customer_id
 
 Using Window function ``most_popular`` - counting ``product_id``s and name it as ``order_count`` and using ``dense_rank`` to rank ``order_count`` by descending order for each customer.<br>
 Filtering results with ``rank=1`` which is the most popular item for each customer.
+
+<hr>
+
+### Question #6
+Which item was purchased first by the customer after they became a member?
+
+### Solution:
+```sql
+with first_order_as_member as(
+select members.customer_id, join_date, product_name, order_date,
+dense_rank() over(partition by sales.customer_id order by sales.order_date) as first_item
+from dannys_diner.menu as menu
+inner join (dannys_diner.members as members
+      inner join dannys_diner.sales as sales
+      on members.customer_id = sales.customer_id)
+on menu.product_id = sales.product_id
+where order_date >= join_date
+)
+
+select customer_id, product_name, order_date
+from first_order_as_member
+where first_item=1
+```
+
+|customer_id 	|product_name 	|order_date|
+|-|-|-|
+|A 	|curry 	|2021-01-07T00:00:00.000Z|
+|B 	|sushi 	|2021-01-11T00:00:00.000Z|
+
+Using Window function ``first_order_as_member`` - partitioning ``customer_id`` by ascending ``order_date`` and filtering ``order_date`` to be on or after ``join_date``.<br>
+Filtering results with ``first_item=1`` to return the first item purchased as a member.
