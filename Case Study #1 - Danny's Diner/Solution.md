@@ -187,3 +187,37 @@ where first_item=1
 	- join members and sales tables on ``customer_id`` and then join the results with menu table on ``product_id``<br>
 	- filtering ``order_date`` to be on or after ``join_date``.
 - Filtering results with ``first_item=1`` to return the first item purchased as a member.
+
+<hr>
+
+### Question #7
+Which item was purchased just before the customer became a member?
+
+### Solution:
+```sql
+with before_becoming_member as(
+select members.customer_id, join_date, product_name, order_date,
+dense_rank() over(partition by sales.customer_id order by sales.order_date desc) as last_item
+from dannys_diner.menu as menu
+inner join (dannys_diner.members as members
+      inner join dannys_diner.sales as sales
+      on members.customer_id = sales.customer_id)
+on menu.product_id = sales.product_id
+where order_date < join_date
+)
+
+select customer_id, product_name, order_date
+from before_becoming_member
+where last_item=1
+```
+|customer_id 	|product_name 	|order_date|
+|-|-|-|
+|A	|sushi	|2021-01-01T00:00:00.000Z|
+|A 	|curry 	|2021-01-01T00:00:00.000Z|
+|B 	|sushi 	|2021-01-04T00:00:00.000Z|
+
+- Using Window function ``before_becoming_member`` - 
+	- partitioning ``customer_id`` by descending ``order_date``.<br>
+	- join members and sales tables on ``customer_id`` and then join the results with menu table on ``product_id``<br>
+	- filtering ``order_date`` to be before ``join_date``.
+- Filtering results with ``flast_item=1`` to return the last item purchased before becoming a member.
