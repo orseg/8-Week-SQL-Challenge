@@ -246,3 +246,33 @@ group by sales.customer_id
 
 Count ``product_id``s from sales and sum ``price``s from menu based on matching ``product_id``s from the join process. <br>
 Filtering ``order_date`` to be before ``join_date``.
+
+
+<hr>
+
+### Question #9
+If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+
+### Solution:
+```sql
+select customer_id, sum(case
+                        when menu.product_id = 1 then menu.price*20
+                        else menu.price*10
+                        end) as points_earned
+from dannys_diner.menu as menu
+join dannys_diner.sales as sales
+on menu.product_id = sales.product_id
+group by customer_id
+order by customer_id
+```
+
+|customer_id 	|points_earned|
+|-|-|
+|A 	|860|
+|B 	|940|
+|C 	|360|
+
+1$ = 10 points. <br>
+Which means, When customer ordering anything from the menu - on each 1$ they spent, they get 10 points.<br>
+BUT! if the customer ordered Sushi (product_id =1) they gets 2 times the points, means 20 points on each 1$ they spent.<br>
+So for this we use **CASE** in the sum function to sum the points based on the requirements.
