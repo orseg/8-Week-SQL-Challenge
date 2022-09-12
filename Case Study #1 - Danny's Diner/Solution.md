@@ -221,3 +221,28 @@ where last_item=1
 	- join members and sales tables on ``customer_id`` and then join the results with menu table on ``product_id``<br>
 	- filtering ``order_date`` to be before ``join_date``.
 - Filtering results with ``flast_item=1`` to return the last item purchased before becoming a member.
+
+<hr>
+
+### Question #8
+What is the total items and amount spent for each member before they became a member?
+
+### Solution:
+```sql
+select sales.customer_id, count(sales.product_id) as product_count, sum(menu.price) as amount_spent
+from dannys_diner.sales as sales
+join dannys_diner.menu as menu
+on sales.product_id = menu.product_id
+where sales.order_date < (select join_date 
+                          from dannys_diner.members as members 
+                          where sales.customer_id = members.customer_id)
+group by sales.customer_id
+```
+
+|customer_id 	|product_count 	|amount_spent|
+|-|-|-|
+|A 	|2 	|25|
+|B 	|3 	|40|
+
+Count ``product_id``s from sales and sum ``price``s from menu based on matching ``product_id``s from the join process. <br>
+Filtering ``order_date`` to be before ``join_date``.
