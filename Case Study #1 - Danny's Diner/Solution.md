@@ -247,7 +247,6 @@ group by sales.customer_id
 Count ``product_id``s from sales and sum ``price``s from menu based on matching ``product_id``s from the join process. <br>
 Filtering ``order_date`` to be before ``join_date``.
 
-
 <hr>
 
 ### Question #9
@@ -276,3 +275,64 @@ order by customer_id
 Which means, When customer ordering anything from the menu - on each 1$ they spent, they get 10 points.<br>
 BUT! if the customer ordered Sushi (product_id =1) they gets 2 times the points, means 20 points on each 1$ they spent.<br>
 So for this we use **CASE** in the sum function to sum the points based on the requirements.
+
+<hr>
+
+### Question #10
+In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+
+### Solution 1 (If we take in consideration that this is only applied from the day they became members):
+```sql
+with january_cte as (
+  select *,
+  dateadd(day, 6, join_date) as first_week --first week of the program
+  from dannys_diner.members as members
+)
+
+select jan.customer_id, 
+sum(case
+    when sales.order_date between jan.join_date and jan.first_week then menu.price*10*2
+    when sales.order_date not between jan.join_date and jan.first_week and menu.product_id = 1 then menu.price*10*2
+    else menu.price*10
+    end) as points_earned
+from january_cte as jan
+join (dannys_diner.sales as sales
+      join dannys_diner.menu as menu
+      on sales.product_id = menu.product_id)
+on sales.customer_id = jan.customer_id
+where sales.order_date <= '2021-01-31' and sales.order_date >= jan.join_date
+group by jan.customer_id
+order by jan.customer_id
+```
+|customer_id 	|points_earned|
+|-|-|
+|A 	|1020|
+|B 	|320|
+
+### Solution 2 (If not):
+```sql
+with january_cte as (
+  select *,
+  join_date + interval '6 day' as first_week --first week of the program
+  from dannys_diner.members as members
+)
+
+select jan.customer_id, 
+sum(case
+    when sales.order_date between jan.join_date and jan.first_week then menu.price*10*2
+    when sales.order_date not between jan.join_date and jan.first_week and menu.product_id = 1 then menu.price*10*2
+    else menu.price*10
+    end) as points_earned
+from january_cte as jan
+join (dannys_diner.sales as sales
+      join dannys_diner.menu as menu
+      on sales.product_id = menu.product_id)
+on sales.customer_id = jan.customer_id
+where sales.order_date <= '2021-01-31'
+group by jan.customer_id
+order by jan.customer_id
+```
+|customer_id 	|points_earned|
+|-|-|
+|A 	|1370|
+|B 	|820|
