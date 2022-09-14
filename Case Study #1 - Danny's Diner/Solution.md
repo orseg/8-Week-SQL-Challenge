@@ -214,7 +214,7 @@ where last_item=1
 	- partitioning ``customer_id`` by descending ``order_date``.<br>
 	- join members and sales tables on ``customer_id`` and then join the results with menu table on ``product_id``<br>
 	- filtering ``order_date`` to be before ``join_date``.
-- Filtering results with ``flast_item=1`` to return the last item purchased before becoming a member.
+- Filtering results with ``last_item=1`` to return the last item purchased before becoming a member.
 
 <hr>
 
