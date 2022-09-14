@@ -1,5 +1,5 @@
 --------------------------------
--- CASE STUDY #1: DANNY'S DINER --
+--CASE STUDY #1: DANNY'S DINER--
 --------------------------------
 
 -- Author: Or S.
