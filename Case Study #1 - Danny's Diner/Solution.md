@@ -20,10 +20,6 @@ group by customer_id
 | B | 74 |
 | C | 36 |
 
-I've used subquery in the ```sum``` function. <br/>
-I've selected the price column from the menu table where the ```product_id``` from the menu table is equal to the ```product_id``` from the sales table and set "total_amount_spent" as alias.<br/>
-grouped by ```customer_id``` from sales tables.
-
 <hr>
 
 ### Question #2
