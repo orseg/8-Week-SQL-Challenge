@@ -8,13 +8,11 @@ What is the total amount each customer spent at the restaurant?
 ### Solution:
 ```sql
 select customer_id, 
-sum(
-  (select M.price 
-   from dannys_diner.menu M 
-   where M.product_id = S.product_id)
-) as total_amount_spent
-from dannys_diner.sales S
-group by S.customer_id
+sum(price) as total_amount_spent
+from sales
+left join menu
+on sales.product_id = menu.product_id
+group by customer_id
 ```
 | customer_id | total_amount_spent |
 | ----------- | ------------------ |
@@ -34,7 +32,7 @@ How many days has each customer visited the restaurant?
 ### Solution:
 ```sql
 select customer_id, count(distinct order_date) as visit_count
-from dannys_diner.sales
+from sales
 group by customer_id
 ```
 
@@ -56,29 +54,29 @@ What was the first item from the menu purchased by each customer?
 ```sql
 with first_item_purchased as (
   select *, row_number() over(partition by customer_id order by order_date) as row_number
-  from dannys_diner.sales
+  from sales
 )
 
 select customer_id,
 (select product_name 
- from dannys_diner.menu 
- where first_item_purchased.product_id = dannys_diner.menu.product_id) as product_name
+ from menu 
+ where product_id = first_item_purchased.product_id) as product_name
 from first_item_purchased
 where row_number=1
-group by customer_id, product_name
+group by customer_id, product_id
 ```
 
 ### Solution 2 (Using join):
 ```sql
 with first_item_purchased as (
   select *, row_number() over(partition by customer_id order by order_date) as row_number
-  from dannys_diner.sales
+  from sales
 )
 
-select customer_id,product_name
+select customer_id, product_name
 from first_item_purchased as fip
-join dannys_diner.menu as m
-	on fip.product_id = m.product_id
+join menu
+	on fip.product_id = menu.product_id
 where row_number=1
 group by customer_id, product_name
 order by customer_id
@@ -103,11 +101,11 @@ What is the most purchased item on the menu and how many times was it purchased 
 
 ### Solution:
 ```sql
-select top(1) product_name, count(s.product_id) as total_purchases
-from dannys_diner.sales as s
-join dannys_diner.menu as m
-	on s.product_id = m.product_id
-group by s.product_id, product_name
+select top(1) product_name, count(sales.product_id) as total_purchases
+from sales
+join menu
+	on sales.product_id = menu.product_id
+group by sales.product_id, product_name
 order by total_purchases desc
 ```
 
@@ -131,14 +129,14 @@ with most_popular as (
   product_id, 
   count(product_id) as order_count, 
   dense_rank() over(partition by customer_id order by count(customer_id) desc) as rank
-  from dannys_diner.sales
+  from sales
   group by customer_id, product_id
 )
 
 select customer_id, order_count, product_name
 from most_popular as mp
-join dannys_diner.menu as m
-	on mp.product_id = m.product_id
+join menu
+	on mp.product_id = menu.product_id
 where rank=1
 order by customer_id
 ```
@@ -164,9 +162,9 @@ Which item was purchased first by the customer after they became a member?
 with first_order_as_member as(
 select members.customer_id, join_date, product_name, order_date,
 dense_rank() over(partition by sales.customer_id order by sales.order_date) as first_item
-from dannys_diner.menu as menu
-inner join (dannys_diner.members as members
-      inner join dannys_diner.sales as sales
+from menu
+inner join (members
+      inner join sales
       on members.customer_id = sales.customer_id)
 on menu.product_id = sales.product_id
 where order_date >= join_date
@@ -179,12 +177,12 @@ where first_item=1
 
 |customer_id 	|product_name 	|order_date|
 |-|-|-|
-|A 	|curry 	|2021-01-07T00:00:00.000Z|
-|B 	|sushi 	|2021-01-11T00:00:00.000Z|
+|A 	|curry 	|2021-01-07|
+|B 	|sushi 	|2021-01-11|
 
 - Using Window function ``first_order_as_member`` - 
 	- partitioning ``customer_id`` by ascending ``order_date``.<br>
-	- join members and sales tables on ``customer_id`` and then join the results with menu table on ``product_id``<br>
+	- join meenu and sales tables on ``product_id`` and then join the results with members table on ``customer_id``<br>
 	- filtering ``order_date`` to be on or after ``join_date``.
 - Filtering results with ``first_item=1`` to return the first item purchased as a member.
 
@@ -195,12 +193,12 @@ Which item was purchased just before the customer became a member?
 
 ### Solution:
 ```sql
-with before_becoming_member as(
+with before_becoming_member as (
 select members.customer_id, join_date, product_name, order_date,
 dense_rank() over(partition by sales.customer_id order by sales.order_date desc) as last_item
-from dannys_diner.menu as menu
-inner join (dannys_diner.members as members
-      inner join dannys_diner.sales as sales
+from menu
+inner join (members
+      inner join sales
       on members.customer_id = sales.customer_id)
 on menu.product_id = sales.product_id
 where order_date < join_date
@@ -212,9 +210,9 @@ where last_item=1
 ```
 |customer_id 	|product_name 	|order_date|
 |-|-|-|
-|A	|sushi	|2021-01-01T00:00:00.000Z|
-|A 	|curry 	|2021-01-01T00:00:00.000Z|
-|B 	|sushi 	|2021-01-04T00:00:00.000Z|
+|A	|sushi	|2021-01-01|
+|A 	|curry 	|2021-01-01|
+|B 	|sushi 	|2021-01-04|
 
 - Using Window function ``before_becoming_member`` - 
 	- partitioning ``customer_id`` by descending ``order_date``.<br>
@@ -230,11 +228,11 @@ What is the total items and amount spent for each member before they became a me
 ### Solution:
 ```sql
 select sales.customer_id, count(sales.product_id) as product_count, sum(menu.price) as amount_spent
-from dannys_diner.sales as sales
-join dannys_diner.menu as menu
+from sales
+join menu
 on sales.product_id = menu.product_id
 where sales.order_date < (select join_date 
-                          from dannys_diner.members as members 
+                          from members
                           where sales.customer_id = members.customer_id)
 group by sales.customer_id
 ```
@@ -258,11 +256,10 @@ select customer_id, sum(case
                         when menu.product_id = 1 then menu.price*20
                         else menu.price*10
                         end) as points_earned
-from dannys_diner.menu as menu
-join dannys_diner.sales as sales
+from menu
+join sales
 on menu.product_id = sales.product_id
 group by customer_id
-order by customer_id
 ```
 
 |customer_id 	|points_earned|
@@ -286,7 +283,7 @@ In the first week after a customer joins the program (including their join date)
 with january_cte as (
   select *,
   dateadd(day, 6, join_date) as first_week --first week of the program
-  from dannys_diner.members as members
+  from members
 )
 
 select jan.customer_id, 
@@ -296,13 +293,12 @@ sum(case
     else menu.price*10
     end) as points_earned
 from january_cte as jan
-join (dannys_diner.sales as sales
-      join dannys_diner.menu as menu
+join (sales
+      join menu
       on sales.product_id = menu.product_id)
 on sales.customer_id = jan.customer_id
 where sales.order_date <= '2021-01-31' and sales.order_date >= jan.join_date
 group by jan.customer_id
-order by jan.customer_id
 ```
 |customer_id 	|points_earned|
 |-|-|
@@ -313,8 +309,8 @@ order by jan.customer_id
 ```sql
 with january_cte as (
   select *,
-  join_date + interval '6 day' as first_week --first week of the program
-  from dannys_diner.members as members
+  dateadd(day, 6, join_date) as first_week --first week of the program
+  from members
 )
 
 select jan.customer_id, 
@@ -324,13 +320,12 @@ sum(case
     else menu.price*10
     end) as points_earned
 from january_cte as jan
-join (dannys_diner.sales as sales
-      join dannys_diner.menu as menu
+join (sales
+      join menu
       on sales.product_id = menu.product_id)
 on sales.customer_id = jan.customer_id
 where sales.order_date <= '2021-01-31'
 group by jan.customer_id
-order by jan.customer_id
 ```
 |customer_id 	|points_earned|
 |-|-|
@@ -345,10 +340,10 @@ Recreate the following table - customer_id, order_date, product_name, price, mem
 ```sql
 select sales.customer_id, sales.order_date,  menu.product_name, menu.price, 
 case when sales.order_date >= members.join_date then 'Y' else 'N' end as member
-from dannys_diner.sales as sales
-left join dannys_diner.menu as menu
+from sales
+left join menu
 on sales.product_id = menu.product_id
-left join dannys_diner.members as members
+left join members
 on sales.customer_id = members.customer_id
 order by customer_id, order_date
 ```
@@ -378,12 +373,11 @@ Danny also requires further information about the ranking of customer products, 
 with members_cte as(
 select sales.customer_id, sales.order_date,  menu.product_name, menu.price, 
 case when sales.order_date >= members.join_date then 'Y' else 'N' end as member
-from dannys_diner.sales as sales
-left join dannys_diner.menu as menu
+from sales
+left join menu
 on sales.product_id = menu.product_id
-left join dannys_diner.members as members
+left join members
 on sales.customer_id = members.customer_id
-order by customer_id, order_date
 )
 
 select *,
