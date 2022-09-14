@@ -2,9 +2,9 @@
 -- CASE STUDY #1: DANNY'S DINER --
 --------------------------------
 
---Author: Or S.
---Date: 14/09/2022
---Tool used: MS SQL Server
+-- Author: Or S.
+-- Date: 14/09/2022
+-- Tool used: MS SQL Server
 
 CREATE SCHEMA dannys_diner;
 
