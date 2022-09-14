@@ -336,3 +336,76 @@ order by jan.customer_id
 |-|-|
 |A 	|1370|
 |B 	|820|
+
+<hr>
+
+### Bonus Question #1
+Recreate the following table - customer_id, order_date, product_name, price, member (Y/N)
+
+```sql
+select sales.customer_id, sales.order_date,  menu.product_name, menu.price, 
+case when sales.order_date >= members.join_date then 'Y' else 'N' end as member
+from dannys_diner.sales as sales
+left join dannys_diner.menu as menu
+on sales.product_id = menu.product_id
+left join dannys_diner.members as members
+on sales.customer_id = members.customer_id
+order by customer_id, order_date
+```
+
+|customer_id 	|order_date 	|product_name 	|price 	|member|
+|-|-|-|-|-|
+|A 	|2021-01-01T00:00:00.000Z 	|sushi 	|10 	|N|
+|A 	|2021-01-01T00:00:00.000Z 	|curry 	|15 	|N|
+|A 	|2021-01-07T00:00:00.000Z 	|curry 	|15 	|Y|
+|A 	|2021-01-10T00:00:00.000Z 	|ramen 	|12 	|Y|
+|A 	|2021-01-11T00:00:00.000Z 	|ramen 	|12 	|Y|
+|A 	|2021-01-11T00:00:00.000Z 	|ramen 	|12 	|Y|
+|B 	|2021-01-01T00:00:00.000Z 	|curry 	|15 	|N|
+|B 	|2021-01-02T00:00:00.000Z 	|curry 	|15 	|N|
+|B 	|2021-01-04T00:00:00.000Z 	|sushi 	|10 	|N|
+|B 	|2021-01-11T00:00:00.000Z 	|sushi 	|10 	|Y|
+|B 	|2021-01-16T00:00:00.000Z 	|ramen 	|12 	|Y|
+|B 	|2021-02-01T00:00:00.000Z 	|ramen 	|12 	|Y|
+|C 	|2021-01-01T00:00:00.000Z 	|ramen 	|12 	|N|
+|C 	|2021-01-01T00:00:00.000Z 	|ramen 	|12 	|N|
+|C 	|2021-01-07T00:00:00.000Z 	|ramen 	|12 	|N|
+
+### Bonus Question #2
+Danny also requires further information about the ranking of customer products, but he purposely does not need the ranking for non-member purchases so he expects null ranking values for the records when customers are not yet part of the loyalty program.
+
+```sql
+with members_cte as(
+select sales.customer_id, sales.order_date,  menu.product_name, menu.price, 
+case when sales.order_date >= members.join_date then 'Y' else 'N' end as member
+from dannys_diner.sales as sales
+left join dannys_diner.menu as menu
+on sales.product_id = menu.product_id
+left join dannys_diner.members as members
+on sales.customer_id = members.customer_id
+order by customer_id, order_date
+)
+
+select *,
+case when member='N' then NULL
+else rank() over(partition by customer_id, member order by order_date) end as ranking
+from members_cte
+```
+
+|customer_id 	|order_date 	|product_name 	|price 	|member| ranking|
+|-|-|-|-|-|-|
+|A 	|2021-01-01T00:00:00.000Z 	|sushi 	|10 	|N 	|null|
+|A 	|2021-01-01T00:00:00.000Z 	|curry 	|15 	|N 	|null|
+|A 	|2021-01-07T00:00:00.000Z 	|curry 	|15 	|Y 	|1|
+|A 	|2021-01-10T00:00:00.000Z 	|ramen 	|12 	|Y 	|2|
+|A 	|2021-01-11T00:00:00.000Z 	|ramen 	|12 	|Y 	|3|
+|A 	|2021-01-11T00:00:00.000Z 	|ramen 	|12 	|Y 	|3|
+|B 	|2021-01-01T00:00:00.000Z 	|curry 	|15 	|N 	|null|
+|B 	|2021-01-02T00:00:00.000Z 	|curry 	|15 	|N 	|null|
+|B 	|2021-01-04T00:00:00.000Z 	|sushi 	|10 	|N 	|null|
+|B 	|2021-01-11T00:00:00.000Z 	|sushi 	|10 	|Y 	|1|
+|B 	|2021-01-16T00:00:00.000Z 	|ramen 	|12 	|Y 	|2|
+|B 	|2021-02-01T00:00:00.000Z 	|ramen 	|12 	|Y 	|3|
+|C 	|2021-01-01T00:00:00.000Z 	|ramen 	|12 	|N 	|null|
+|C 	|2021-01-01T00:00:00.000Z 	|ramen 	|12 	|N 	|null|
+|C 	|2021-01-07T00:00:00.000Z 	|ramen 	|12 	|N 	|null|
