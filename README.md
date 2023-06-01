@@ -1,4 +1,4 @@
-# 8 Week SQL Challenge
+# 8-Week-SQL-Challenge
 
 This repository contains solutions for case studies in <a href="https://8weeksqlchallenge.com">8WeekSQLChallenge</a>.
 
