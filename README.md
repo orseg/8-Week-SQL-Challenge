@@ -12,4 +12,11 @@ Each case study folder contains the following:
 
 # Case studies:
 * <a href="https://github.com/orseg/8-Week-SQL-Challenge/tree/main/Case%20Study%20%231%20-%20Danny's%20Diner">🍜 Case Study #1: Danny's Diner</a>
+
+
+
+
+<p align="center">
+    <a href="https://orseg.github.io">Home Page</a>
+</p>
  
