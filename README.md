@@ -6,7 +6,7 @@ These case studies provided by Danny Ma (The creator of 8 Week SQL Challenge).
 
 Great case studies to practice SQL coding and Data Analysis 😃
 
-Solutions are coded in **MS SQL Server**
+Solutions are coded in ``MS SQL Server`` and ``T-SQL``
 
 Each case study folder contains the following:
 * README.md file to explain the case study and target
