@@ -2,7 +2,7 @@
 --CASE STUDY #1: DANNY'S DINER--
 --------------------------------
 
--- Author: Or S.
+-- Original Creator: Danny Ma
 -- Date: 14/09/2022
 -- Tool used: MS SQL Server
 
