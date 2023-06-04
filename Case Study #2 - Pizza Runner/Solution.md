@@ -190,7 +190,8 @@ order by total_orders desc
 
 1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)
 
-![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/1a0b3117-5cb1-4c40-9126-d7b8edaeb0dd)
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/caf2a2fb-151e-4b00-bcfc-56d803ea9cfc)
+
 ```sql
 declare @week_starts date = '2021-01-01' -- week starts 2021-01-01
 select datediff(WK, @week_starts,registration_date) as 'registration_week', count(runner_id) as 'signed_up_runners'
@@ -200,20 +201,22 @@ group by datediff(WK, @week_starts,registration_date)
 
 2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
 
-![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/c6510397-239d-4b86-92e4-0f3d5b9a1a0d)
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/64d78c76-2531-4ae0-bd67-10edba30f716)
+
 ```sql
 -- I'm pretty sure that my answer is not entirely correct but close.
 select ro.runner_id, avg(DATEDIFF(MINUTE,co.order_time,ro.pickup_time)) as 'avg_time'
 from customer_orders_1 as co
 left join runner_orders_1 as ro
 on co.order_id = ro.order_id
-where ro.duration is not null
+where ro.distance is not null
 group by ro.runner_id
 ```
 
 3. Is there any relationship between the number of pizzas and how long the order takes to prepare?
 
-![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/d0af8363-1041-4495-b18b-80b73651dc69)
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/88bd6886-a03c-430c-a2da-82117ea2c43b)
+
 ```sql
 with cte as 
 	(
