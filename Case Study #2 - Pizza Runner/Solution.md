@@ -233,3 +233,58 @@ select pizza_count, avg_time_to_make
 from cte
 where row_number=1
 group by pizza_count, avg_time_to_make
+```
+
+4. What was the average distance travelled for each customer?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/3ec40cc0-c687-48ed-ae8d-5527560b0161)
+```sql
+with cte_avg as (select co.customer_id, round(avg(cast(ro.distance as float)),1) as 'avg_distance'
+from customer_orders_1 as co
+left join runner_orders_1 as ro
+on co.order_id = ro.order_id
+where ro.distance is not null
+group by co.customer_id)
+select * from cte_avg;
+```
+
+5. What was the difference between the longest and shortest delivery times for all orders?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/8edee17b-a91c-44f4-88d2-ca3783eda8c0)
+```sql
+with time_diff as (select co.order_id, DATEDIFF(MINUTE,co.order_time,ro.pickup_time) as 'timediff'
+from customer_orders_1 as co
+inner join runner_orders_1 as ro
+on co.order_id = ro.order_id
+where ro.distance is not null
+group by co.order_id,co.order_time,ro.pickup_time)
+select max(timediff) - min(timediff) as 'time_diff'
+from time_diff;
+```
+
+6. What was the average speed for each runner for each delivery and do you notice any trend for these values?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/499c98fb-4628-4118-9185-addaade694a2)
+
+```sql
+select runner_id, order_id, round((cast(distance as float)/(cast(duration as float)/60)),1) as 'avg_speed'
+from runner_orders_1
+where distance is not null
+group by order_id, runner_id, distance, duration
+order by runner_id;
+```
+
+7. What is the successful delivery percentage for each runner?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/ea1b7a2a-f2a0-4905-b9be-27105e3a9efc)
+
+```sql
+with d_perc as (select runner_id, (sum(
+	case when distance is not null then 1
+	else 0
+	end)) as successful, count(runner_id) as total
+from runner_orders_1
+group by runner_id)
+select runner_id, successful, total, (cast(successful as float)/total)*100 as 'delivery_perc'
+from d_perc
+```
