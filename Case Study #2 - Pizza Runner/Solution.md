@@ -1,8 +1,5 @@
 # 🍕 Case Study #2: Pizza Runner
 
-	Work in Progress!
-	Once completed, I'll delete this message :)
-
 ## Cleaning Data
 
 ### runner_orders table
@@ -287,4 +284,212 @@ from runner_orders_1
 group by runner_id)
 select runner_id, successful, total, (cast(successful as float)/total)*100 as 'delivery_perc'
 from d_perc
+```
+
+## C. Ingredient Optimisation
+
+1. What are the standard ingredients for each pizza?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/cd781b89-48d7-4156-bc3d-bb860303afca)
+
+```sql
+-- This question made me learn how apply works.
+with split_cte as (select *
+from pizza_recipes
+cross apply string_split(cast(pizza_recipes.toppings as nvarchar(max)), ','))
+select sc.pizza_id, pn.pizza_name, LTRIM(value) as topping_id, pt.topping_name
+from split_cte as sc
+left join pizza_toppings as pt
+on sc.value = pt.topping_id
+left join pizza_names as pn
+on sc.pizza_id = pn.pizza_id;
+```
+
+2. What was the most commonly added extra?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/1576db6b-4450-4505-a777-ac27b76cdb23)
+
+```sql
+with extras_cte as(select b.value from customer_orders_1 as a
+cross apply string_split(cast(a.extras as nvarchar(max)), ',') b)
+select LTRIM(value) as extra, cast(topping_name as nvarchar(max)) as topping_name, count(LTRIM(value)) as extra_count
+from extras_cte
+left join pizza_toppings as toppings
+on extras_cte.value = topping_id
+group by cast(topping_name as nvarchar(max)), LTRIM(value)
+order by extra_count desc;
+```
+
+3. What was the most common exclusion?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/75e3be94-3050-44d5-93b7-830682b31166)
+
+```sql
+with exc_cte as(select b.value from customer_orders_1 as a
+cross apply string_split(cast(a.exclusions as nvarchar(max)), ',') b)
+select LTRIM(value) as exclusion, cast(topping_name as nvarchar(max)) as topping_name, count(LTRIM(value)) as exc_count
+from exc_cte
+left join pizza_toppings as toppings
+on exc_cte.value = topping_id
+group by cast(topping_name as nvarchar(max)), LTRIM(value)
+order by exc_count desc;
+```
+
+4. Generate an order item for each record in the customers_orders table in the format of one of the following:
+
+* Meat Lovers
+	
+* Meat Lovers - Exclude Beef
+	
+* Meat Lovers - Extra Bacon
+	
+* Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
+    
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/588eb289-74ee-44dd-b822-e84afe47e10d)
+
+
+```sql
+-- I tried. Not quiet there. that's quiet an advanced question for my level.
+with order_itemz as(select a.order_id, a.customer_id, a.pizza_id,x.value as exc, y.value as ext, order_item =
+case
+	when exclusions is null and extras is null then (select pizza_name from pizza_names where a.pizza_id = pizza_names.pizza_id)
+	when exclusions is not null and extras is null then CONCAT((select pizza_name from pizza_names where a.pizza_id = pizza_names.pizza_id),' ', 
+	'- Exclude ', (select cast(topping_name as nvarchar(max)) from pizza_toppings where topping_id in (x.value)))
+	when exclusions is null and extras is not null then CONCAT((select pizza_name from pizza_names where a.pizza_id = pizza_names.pizza_id),' ', 
+	'- Extra ', (select cast(topping_name as nvarchar(max)) from pizza_toppings where topping_id in (y.value)))
+	when exclusions is not null and extras is not null then 
+	CONCAT(
+		(select pizza_name from pizza_names where a.pizza_id = pizza_names.pizza_id),' ', 
+		'- Exclude ', (select cast(topping_name as nvarchar(max)) from pizza_toppings where topping_id in (x.value)), ' ', 
+		'- Extra ', (select cast(topping_name as nvarchar(max)) from pizza_toppings where topping_id in (y.value))
+	)
+end
+from customer_orders_1 as a
+outer apply string_split(cast(a.exclusions as nvarchar(max)), ',') x
+outer apply string_split(cast(a.extras as nvarchar(max)), ',') y
+group by a.order_id, a.customer_id, a.pizza_id, a.exclusions, a.extras, x.value, y.value)
+select order_id,customer_id,pizza_id, ltrim(exc) as exclusions, ltrim(ext) as extras, cast(order_item as nvarchar(max))
+from order_itemz
+group by order_id, customer_id, pizza_id,exc,ext, cast(order_item as nvarchar(max))
+order by order_id
+```
+
+## D. Pricing and Ratings
+
+1. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/77f00256-d7fa-4830-b640-a879d78844b6)
+
+```sql
+select sum(
+case
+when co.pizza_id = 1 then 12
+else 10
+end) as total_earn
+from customer_orders_1 as co
+left join runner_orders_1 as ro
+on co.order_id = ro.order_id
+where ro.distance is not null;
+```
+
+2. What if there was an additional $1 charge for any pizza extras?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/39b6485e-5f5a-40a8-aa81-918181e2643e)
+
+```sql
+-- Step 1. create temp table with separated only extras selected (extras not null)
+with calc_extras as (select order_id, y.value
+from customer_orders_1 as co
+cross apply string_split(cast(co.extras as nvarchar(max)), ',') y)
+select order_id, value
+into #extras_temp 
+from calc_extras 
+
+-- Step 2. Sum the current total amount we got earlier with how much extras we got from the tmep table for successful deliveries.
+declare @current_total_amount int = '138';
+select top(1) total_earnings = sum(cast(ltrim(#extras_temp.value) as int)+@current_total_amount)
+from #extras_temp
+left join runner_orders_1 as ro
+on #extras_temp.order_id = ro.order_id
+where ro.distance is not null
+group by #extras_temp.order_id, #extras_temp.value
+order by total_earnings desc
+```
+
+3. The Pizza Runner team now wants to add an additional ratings system that allows 
+customers to rate their runner, how would you design an additional table for this new 
+dataset - generate a schema for this new table and insert your own data 
+for ratings for each successful customer order between 1 to 5.
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/2b4e26bc-c30f-41b8-a201-e756417d6d47)
+
+
+```sql
+drop table if exists ratings;
+create table ratings(
+order_id integer,
+rating integer
+);
+insert into ratings
+(order_id, rating)
+values
+(1,4),
+(2,5),
+(3,1),
+(4,2),
+(5,5),
+(6,NULL), -- order 6 is cancelled so no rating.
+(7,5),
+(8,1),
+(9,NULL), -- same with order 9.
+(10,4);
+```
+
+4. Using your newly generated table - can you join all of the information together to 
+form a table which has the following information for successful deliveries?
+
+* customer_id
+	
+* order_id
+	
+* runner_id
+	
+* rating
+	
+* order_time
+	
+* pickup_time
+	
+* Time between order and pickup
+	
+* Delivery duration
+	
+* Average speed
+	
+* Total number of pizzas
+    
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/6eb9691e-82cc-45b8-827b-882f082a672e)
+
+```sql
+select co.customer_id, co.order_id, ro.runner_id, ratings.rating, co.order_time, ro.pickup_time, DATEDIFF(MINUTE,co.order_time,ro.pickup_time) as 'time_diff',
+ro.duration, round((cast(ro.distance as float)/(cast(ro.duration as float)/60)),1) as 'avg_speed', count(co.customer_id) as 'total_pizzas_delivered'
+from customer_orders_1 as co
+left join runner_orders_1 as ro
+on co.order_id = ro.order_id
+left join ratings
+on ratings.order_id = co.order_id
+where ro.distance is not null
+group by co.customer_id, co.order_id, ro.runner_id, ratings.rating, co.order_time, ro.pickup_time, ro.duration, ro.distance
+```
+
+5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras 
+and each runner is paid $0.30 per kilometre traveled - how much money does Pizza 
+Runner have left over after these deliveries?
+
+![image](https://github.com/orseg/8-Week-SQL-Challenge/assets/83500544/9c8ac43d-cf2e-494b-84dd-47331422d9a6)
+
+```sql
+declare @earnings_for_fixed_price int = 138;
+select leftover_amount =  @earnings_for_fixed_price - sum((0.3*cast(distance as float)))
+from runner_orders_1
 ```
